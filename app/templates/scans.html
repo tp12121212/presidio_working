@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<section data-page="scans" class="space-y-6">
+  <header class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold">Scans</h1>
+      <p class="text-slate-500">Upload a file or scan a server path to start analysis.</p>
+    </div>
+  </header>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="card">
+      <h2 class="card-title">Upload file</h2>
+      <form id="upload-form" class="space-y-4">
+        <input type="file" name="file" class="input" required />
+        <button class="btn-primary" type="submit">Start Scan</button>
+        <p id="upload-status" class="text-sm text-slate-500"></p>
+      </form>
+    </div>
+    <div class="card">
+      <h2 class="card-title">Scan server path</h2>
+      <form id="path-form" class="space-y-4">
+        <input type="text" name="path" placeholder="/data/files" class="input" />
+        <button class="btn-primary" type="submit">Start Scan</button>
+        <p id="path-status" class="text-sm text-slate-500"></p>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="card-title">Latest Jobs</h2>
+    <div id="jobs" class="space-y-2 text-sm text-slate-600">No jobs yet.</div>
+  </div>
+</section>
+{% endblock %}
