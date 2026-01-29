@@ -1,0 +1,52 @@
+services:
+  sit-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - PRESIDIO_SIT_DATABASE_URL=postgresql+psycopg2://presidio:presidio@postgres:5432/presidio
+      - PRESIDIO_SIT_REDIS_URL=redis://redis:6379/0
+      - PRESIDIO_SIT_STORAGE_PATH=/data/uploads
+      - PRESIDIO_SIT_SCAN_ROOT=/data/uploads
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/uploads:/data/uploads
+    depends_on:
+      - redis
+      - postgres
+
+  sit-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["celery", "-A", "workers.celery_app", "worker", "--loglevel=info", "--concurrency=2"]
+    environment:
+      - PRESIDIO_SIT_DATABASE_URL=postgresql+psycopg2://presidio:presidio@postgres:5432/presidio
+      - PRESIDIO_SIT_REDIS_URL=redis://redis:6379/0
+      - PRESIDIO_SIT_STORAGE_PATH=/data/uploads
+      - PRESIDIO_SIT_SCAN_ROOT=/data/uploads
+    volumes:
+      - ./data/uploads:/data/uploads
+    depends_on:
+      - redis
+      - postgres
+
+  redis:
+    image: redis:7.2-alpine
+    ports:
+      - "6379:6379"
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=presidio
+      - POSTGRES_PASSWORD=presidio
+      - POSTGRES_DB=presidio
+    ports:
+      - "5432:5432"
+    volumes:
+      - sit-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  sit-postgres-data:

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<section data-page="rulepacks" class="space-y-6">
+  <header>
+    <h1 class="text-2xl font-semibold">RulePacks</h1>
+    <p class="text-slate-500">Create rulepacks and select SIT versions for export.</p>
+  </header>
+
+  <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+    <div class="card">
+      <h2 class="card-title">Create RulePack</h2>
+      <form id="rulepack-form" class="space-y-4">
+        <input name="name" class="input" placeholder="Rulepack name" required />
+        <input name="version" class="input" placeholder="Version" required />
+        <input name="publisher" class="input" placeholder="Publisher" />
+        <input name="locale" class="input" placeholder="Locale" />
+        <textarea name="description" class="input" placeholder="Description"></textarea>
+        <button class="btn-primary" type="submit">Create RulePack</button>
+        <p id="rulepack-status" class="text-sm text-slate-500"></p>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2 class="card-title">Manage RulePacks</h2>
+      <div id="rulepacks-list" class="space-y-3 text-sm text-slate-600">No rulepacks loaded.</div>
+    </div>
+  </div>
+</section>
+{% endblock %}

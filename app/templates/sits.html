@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<section data-page="sits" class="space-y-6">
+  <header>
+    <h1 class="text-2xl font-semibold">SIT Repository</h1>
+    <p class="text-slate-500">Manage SIT definitions and versioned logic.</p>
+  </header>
+
+  <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+    <div class="card">
+      <h2 class="card-title">Create SIT</h2>
+      <form id="sit-form" class="space-y-4">
+        <input name="name" class="input" placeholder="SIT name" required />
+        <textarea name="description" class="input" placeholder="Description"></textarea>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input name="entity_type" class="input" placeholder="Entity type" />
+          <input name="confidence" class="input" placeholder="Confidence (low/medium/high)" />
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input name="primary_type" class="input" placeholder="Primary type (regex/keyword)" required />
+          <input name="primary_value" class="input" placeholder="Primary value" required />
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input name="supporting_mode" class="input" placeholder="Supporting mode (ANY/ALL/MIN_N)" required />
+          <input name="supporting_min_n" class="input" placeholder="MIN_N value (optional)" />
+        </div>
+        <textarea name="supporting_groups" class="input" placeholder='Supporting groups JSON (e.g. [{"name":"context","items":[{"type":"keyword","value":"account"}]}])' required></textarea>
+        <button class="btn-primary" type="submit">Create SIT</button>
+        <p id="sit-status" class="text-sm text-slate-500"></p>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2 class="card-title">Latest SITs</h2>
+      <div id="sits-list" class="space-y-3 text-sm text-slate-600">No SITs loaded.</div>
+    </div>
+  </div>
+</section>
+{% endblock %}
