@@ -21,7 +21,13 @@ def test_scan_processor_calls_presidio_analyze(tmp_path: Path, monkeypatch):
     try:
         sample = tmp_path / "sample.txt"
         sample.write_text("Hello SSN 123-45-6789", encoding="utf-8")
-        options = ScanOptions(entities=["US_SSN"], language="en", score_threshold=0.5)
+        options = ScanOptions(
+            entities=["US_SSN"],
+            language="en",
+            score_threshold=0.5,
+            include_attachments=True,
+            include_inline_images=True,
+        )
         processor = FileProcessor(session, "job-1", options)
         processor.process_path(sample, ProcessingStats(), virtual_path="sample.txt")
         assert called["entities"] == ["US_SSN"]

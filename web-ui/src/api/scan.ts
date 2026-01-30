@@ -53,6 +53,8 @@ export interface ScanOptions {
   ocrMode?: "auto" | "force" | "off";
   includeHeaders?: boolean;
   parseHtml?: boolean;
+  includeAttachments?: boolean;
+  includeInlineImages?: boolean;
 }
 
 const SCAN_BASE = import.meta.env.VITE_SCAN_BASE_URL || "/api/scan";
@@ -84,6 +86,12 @@ function appendOptions(form: FormData, options?: ScanOptions) {
   }
   if (options.parseHtml !== undefined) {
     form.append("parse_html", String(options.parseHtml));
+  }
+  if (options.includeAttachments !== undefined) {
+    form.append("include_attachments", String(options.includeAttachments));
+  }
+  if (options.includeInlineImages !== undefined) {
+    form.append("include_inline_images", String(options.includeInlineImages));
   }
 }
 

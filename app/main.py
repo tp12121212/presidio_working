@@ -138,6 +138,8 @@ def _parse_scan_options(
     ocr_mode: str | None,
     include_headers: bool | None,
     parse_html: bool | None,
+    include_attachments: bool | None,
+    include_inline_images: bool | None,
 ) -> dict:
     entities = None
     if entity_types:
@@ -149,6 +151,12 @@ def _parse_scan_options(
         "ocr_mode": ocr_mode or "auto",
         "include_headers": include_headers if include_headers is not None else True,
         "parse_html": parse_html if parse_html is not None else True,
+        "include_attachments": include_attachments
+        if include_attachments is not None
+        else True,
+        "include_inline_images": include_inline_images
+        if include_inline_images is not None
+        else True,
     }
 
 
@@ -177,7 +185,16 @@ async def scan_single_file(
     destination = job_dir / safe_name
     await _save_upload(file, destination)
     JobRepository(session).create(job_id, file_name=safe_name)
-    options = _parse_scan_options(entity_types, threshold, language, ocr_mode, None, None)
+    options = _parse_scan_options(
+        entity_types,
+        threshold,
+        language,
+        ocr_mode,
+        None,
+        None,
+        None,
+        None,
+    )
     scan_file_job.delay(job_id, str(destination), options=options, virtual_root=safe_name)
     return {"scan_id": job_id}
 
@@ -202,7 +219,16 @@ async def scan_batch(
         destination = job_dir / safe_path
         await _save_upload(upload, destination)
     JobRepository(session).create(job_id, file_name="batch")
-    options = _parse_scan_options(entity_types, threshold, language, ocr_mode, None, None)
+    options = _parse_scan_options(
+        entity_types,
+        threshold,
+        language,
+        ocr_mode,
+        None,
+        None,
+        None,
+        None,
+    )
     scan_file_job.delay(
         job_id,
         str(job_dir),
@@ -227,7 +253,16 @@ async def scan_archive(
     destination = job_dir / safe_name
     await _save_upload(archive_file, destination)
     JobRepository(session).create(job_id, file_name=safe_name)
-    options = _parse_scan_options(entity_types, threshold, language, ocr_mode, None, None)
+    options = _parse_scan_options(
+        entity_types,
+        threshold,
+        language,
+        ocr_mode,
+        None,
+        None,
+        None,
+        None,
+    )
     scan_file_job.delay(job_id, str(destination), options=options, virtual_root=safe_name)
     return {"scan_id": job_id}
 
@@ -241,6 +276,8 @@ async def scan_email(
     ocr_mode: str | None = Form(default=None),
     include_headers: bool | None = Form(default=True),
     parse_html: bool | None = Form(default=True),
+    include_attachments: bool | None = Form(default=True),
+    include_inline_images: bool | None = Form(default=True),
     session=Depends(get_session),
 ):
     job_id = str(uuid.uuid4())
@@ -250,7 +287,14 @@ async def scan_email(
     await _save_upload(email_file, destination)
     JobRepository(session).create(job_id, file_name=safe_name)
     options = _parse_scan_options(
-        entity_types, threshold, language, ocr_mode, include_headers, parse_html
+        entity_types,
+        threshold,
+        language,
+        ocr_mode,
+        include_headers,
+        parse_html,
+        include_attachments,
+        include_inline_images,
     )
     scan_file_job.delay(job_id, str(destination), options=options, virtual_root=safe_name)
     return {"scan_id": job_id}

@@ -8,7 +8,7 @@ describe("PresidioDemo", () => {
   beforeEach(() => {
     // @ts-expect-error mock fetch
     global.fetch = (url: string) => {
-      if (url.includes("supportedentities")) {
+      if (url.includes("/api/presidio/entities")) {
         return mockFetch(["PERSON", "EMAIL_ADDRESS"]);
       }
       if (url.includes("/analyze")) {
@@ -27,6 +27,21 @@ describe("PresidioDemo", () => {
 
     await waitFor(() => {
       expect(screen.getByTitle(/PERSON/)).toBeInTheDocument();
+    });
+  });
+
+  it("shows retry when entity loading fails", async () => {
+    // @ts-expect-error mock fetch
+    global.fetch = (url: string) => {
+      if (url.includes("/api/presidio/entities")) {
+        return Promise.resolve({ ok: false, text: async () => "boom" } as Response);
+      }
+      return mockFetch({});
+    };
+
+    render(<PresidioDemo />);
+    await waitFor(() => {
+      expect(screen.getByText(/Failed to load entity types/i)).toBeInTheDocument();
     });
   });
 });

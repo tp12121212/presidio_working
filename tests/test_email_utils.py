@@ -25,6 +25,43 @@ def test_extract_eml_with_attachment(tmp_path: Path):
     assert warnings == []
 
 
+def test_extract_eml_skips_attachments_and_inline(tmp_path: Path):
+    message = EmailMessage()
+    message["Subject"] = "Hello"
+    message.set_content("Plain text body")
+    message.add_attachment(
+        b"data",
+        maintype="application",
+        subtype="octet-stream",
+        filename="note.txt",
+    )
+    message.add_attachment(
+        b"imgdata",
+        maintype="image",
+        subtype="png",
+        filename="inline.png",
+        disposition="inline",
+        cid="image1",
+    )
+
+    eml_path = tmp_path / "sample.eml"
+    eml_path.write_bytes(message.as_bytes())
+
+    items, _warnings = extract_eml(
+        eml_path,
+        tmp_path / "out",
+        include_headers=False,
+        parse_html=True,
+        include_attachments=False,
+        include_inline_images=False,
+    )
+    paths = [item.virtual_path for item in items]
+
+    assert "body.txt" in paths
+    assert not any(path.startswith("attachments/") for path in paths)
+    assert not any(path.startswith("inline/") for path in paths)
+
+
 def test_extract_msg_with_mock(tmp_path: Path, monkeypatch):
     class FakeAttachment:
         def __init__(self):
@@ -57,7 +94,14 @@ def test_extract_msg_with_mock(tmp_path: Path, monkeypatch):
     msg_path = tmp_path / "sample.msg"
     msg_path.write_bytes(b"fake")
 
-    items, warnings = extract_msg(msg_path, tmp_path / "out", include_headers=True, parse_html=True)
+    items, warnings = extract_msg(
+        msg_path,
+        tmp_path / "out",
+        include_headers=True,
+        parse_html=True,
+        include_attachments=True,
+        include_inline_images=True,
+    )
     paths = [item.virtual_path for item in items]
 
     assert "body.txt" in paths
