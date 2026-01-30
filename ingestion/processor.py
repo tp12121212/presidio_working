@@ -162,4 +162,4 @@ def mark_file_processed(session: Session, path: Path) -> None:
 
     repo = ProcessedFileRepository(session)
     digest = file_hash(path)
-    repo.mark_processed(path, digest)
+    repo.mark_processed(str(path), digest)

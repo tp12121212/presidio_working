@@ -12,6 +12,9 @@ celery_app = Celery(
     include=["workers.tasks"],
 )
 
+# Ensure this app is used as the default in any process importing tasks.
+celery_app.set_default()
+
 celery_app.conf.update(
     task_serializer="json",
     accept_content=["json"],

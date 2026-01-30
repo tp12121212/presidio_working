@@ -3,16 +3,15 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from celery import shared_task
-
 from common.db import SessionLocal, init_db
 from ingestion.processor import FileProcessor, ProcessingStats, should_skip_file
 from jobs.repository import JobRepository
+from workers.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 
 
-@shared_task(name="scan_file_job")
+@celery_app.task(name="scan_file_job")
 def scan_file_job(job_id: str, file_path: str) -> None:
     init_db()
     session = SessionLocal()
