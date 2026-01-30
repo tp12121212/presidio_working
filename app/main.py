@@ -4,7 +4,7 @@ import logging
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, Response
@@ -17,16 +17,24 @@ from app.schemas import (
     RulepackCreate,
     RulepackRead,
     RulepackSelectionUpdate,
+    ScanRead,
+    ScanFileRead,
+    ScanEntityRead,
+    RegexCandidateRead,
+    KeywordCandidateRead,
+    ScanExtractionRead,
 )
 from common.config import settings
 from common.db import SessionLocal, init_db
 from common.logging import configure_logging
-from common.utils import ensure_within_base, safe_filename
+from common.utils import ensure_within_base, safe_filename, safe_relative_path
 from findings.repository import FindingsRepository
 from jobs.repository import JobRepository
+from pii.engines import PIIEngines
 from purview.exporter import ExportValidationError, build_rule_package
 from purview.repository import RulepackRepository
 from sit.repository import SitRepository
+from scans.repository import ScanItemRepository
 from sit.schemas import (
     KeywordListCreate,
     KeywordListRead,
@@ -106,7 +114,7 @@ async def scan_file(
                     break
                 handle.write(chunk)
         repo.create(job_id, file_name=safe_name)
-        scan_file_job.delay(job_id, str(destination))
+        scan_file_job.delay(job_id, str(destination), options={}, virtual_root=safe_name)
         return {"job_id": job_id}
 
     resolved_path = ensure_within_base(Path(path), settings.scan_root)
@@ -114,8 +122,287 @@ async def scan_file(
         raise HTTPException(status_code=404, detail="Path not found")
 
     repo.create(job_id, file_name=resolved_path.name)
-    scan_file_job.delay(job_id, str(resolved_path))
+    scan_file_job.delay(
+        job_id,
+        str(resolved_path),
+        options={},
+        root_dir=str(settings.scan_root),
+    )
     return {"job_id": job_id}
+
+
+def _parse_scan_options(
+    entity_types: str | None,
+    threshold: float | None,
+    language: str | None,
+    ocr_mode: str | None,
+    include_headers: bool | None,
+    parse_html: bool | None,
+) -> dict:
+    entities = None
+    if entity_types:
+        entities = [value.strip() for value in entity_types.split(",") if value.strip()]
+    return {
+        "entities": entities,
+        "score_threshold": threshold,
+        "language": language or "en",
+        "ocr_mode": ocr_mode or "auto",
+        "include_headers": include_headers if include_headers is not None else True,
+        "parse_html": parse_html if parse_html is not None else True,
+    }
+
+
+async def _save_upload(file: UploadFile, destination: Path) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with destination.open("wb") as handle:
+        while True:
+            chunk = await file.read(1024 * 1024)
+            if not chunk:
+                break
+            handle.write(chunk)
+
+
+@app.post("/scan/file")
+async def scan_single_file(
+    file: UploadFile = File(...),
+    entity_types: str | None = Form(default=None),
+    threshold: float | None = Form(default=None),
+    language: str | None = Form(default=None),
+    ocr_mode: str | None = Form(default=None),
+    session=Depends(get_session),
+):
+    job_id = str(uuid.uuid4())
+    safe_name = safe_filename(file.filename or "upload")
+    job_dir = settings.storage_path / job_id
+    destination = job_dir / safe_name
+    await _save_upload(file, destination)
+    JobRepository(session).create(job_id, file_name=safe_name)
+    options = _parse_scan_options(entity_types, threshold, language, ocr_mode, None, None)
+    scan_file_job.delay(job_id, str(destination), options=options, virtual_root=safe_name)
+    return {"scan_id": job_id}
+
+
+@app.post("/scan/batch")
+async def scan_batch(
+    files: list[UploadFile] = File(...),
+    paths: list[str] = Form(...),
+    entity_types: str | None = Form(default=None),
+    threshold: float | None = Form(default=None),
+    language: str | None = Form(default=None),
+    ocr_mode: str | None = Form(default=None),
+    session=Depends(get_session),
+):
+    if len(files) != len(paths):
+        raise HTTPException(status_code=400, detail="files and paths length mismatch")
+    job_id = str(uuid.uuid4())
+    job_dir = settings.storage_path / job_id
+    job_dir.mkdir(parents=True, exist_ok=True)
+    for upload, rel_path in zip(files, paths):
+        safe_path = safe_relative_path(rel_path)
+        destination = job_dir / safe_path
+        await _save_upload(upload, destination)
+    JobRepository(session).create(job_id, file_name="batch")
+    options = _parse_scan_options(entity_types, threshold, language, ocr_mode, None, None)
+    scan_file_job.delay(
+        job_id,
+        str(job_dir),
+        options=options,
+        root_dir=str(job_dir),
+    )
+    return {"scan_id": job_id}
+
+
+@app.post("/scan/archive")
+async def scan_archive(
+    archive_file: UploadFile = File(...),
+    entity_types: str | None = Form(default=None),
+    threshold: float | None = Form(default=None),
+    language: str | None = Form(default=None),
+    ocr_mode: str | None = Form(default=None),
+    session=Depends(get_session),
+):
+    job_id = str(uuid.uuid4())
+    safe_name = safe_filename(archive_file.filename or "archive")
+    job_dir = settings.storage_path / job_id
+    destination = job_dir / safe_name
+    await _save_upload(archive_file, destination)
+    JobRepository(session).create(job_id, file_name=safe_name)
+    options = _parse_scan_options(entity_types, threshold, language, ocr_mode, None, None)
+    scan_file_job.delay(job_id, str(destination), options=options, virtual_root=safe_name)
+    return {"scan_id": job_id}
+
+
+@app.post("/scan/email")
+async def scan_email(
+    email_file: UploadFile = File(...),
+    entity_types: str | None = Form(default=None),
+    threshold: float | None = Form(default=None),
+    language: str | None = Form(default=None),
+    ocr_mode: str | None = Form(default=None),
+    include_headers: bool | None = Form(default=True),
+    parse_html: bool | None = Form(default=True),
+    session=Depends(get_session),
+):
+    job_id = str(uuid.uuid4())
+    safe_name = safe_filename(email_file.filename or "email")
+    job_dir = settings.storage_path / job_id
+    destination = job_dir / safe_name
+    await _save_upload(email_file, destination)
+    JobRepository(session).create(job_id, file_name=safe_name)
+    options = _parse_scan_options(
+        entity_types, threshold, language, ocr_mode, include_headers, parse_html
+    )
+    scan_file_job.delay(job_id, str(destination), options=options, virtual_root=safe_name)
+    return {"scan_id": job_id}
+
+
+@app.get("/scan/{job_id}", response_model=ScanRead)
+def scan_results(job_id: str, session=Depends(get_session)):
+    job = JobRepository(session).get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Scan not found")
+
+    findings = FindingsRepository(session).list_findings(job_id=job_id)
+    items = ScanItemRepository(session).list_items(job_id)
+
+    findings_by_path: Dict[str, list] = {}
+    for finding in findings:
+        findings_by_path.setdefault(finding.file_path or "unknown", []).append(finding)
+
+    files: list[ScanFileRead] = []
+    if not items and findings_by_path:
+        for path_key, item_findings in findings_by_path.items():
+            entities = [
+                ScanEntityRead(
+                    entity_type=f.entity_type,
+                    start=f.start or 0,
+                    end=f.end or 0,
+                    text=f.entity_text,
+                    score=f.score,
+                )
+                for f in item_findings
+            ]
+            regex_candidates = [
+                RegexCandidateRead(
+                    id=f.id,
+                    label=f.entity_type,
+                    start=f.start or 0,
+                    end=f.end or 0,
+                    text=f.entity_text,
+                    entity_type=f.entity_type,
+                    score=f.score,
+                    regex=f.primary_regex,
+                )
+                for f in item_findings
+                if f.primary_regex
+            ]
+            keyword_counts: Dict[str, dict] = {}
+            for f in item_findings:
+                for keyword in f.supporting_keywords or []:
+                    entry = keyword_counts.setdefault(
+                        keyword, {"count": 0, "entity_types": set()}
+                    )
+                    entry["count"] += 1
+                    entry["entity_types"].add(f.entity_type)
+            keyword_candidates = [
+                KeywordCandidateRead(
+                    keyword=keyword,
+                    count=data["count"],
+                    entity_types=sorted(data["entity_types"]),
+                )
+                for keyword, data in keyword_counts.items()
+            ]
+            files.append(
+                ScanFileRead(
+                    file_id=path_key,
+                    virtual_path=path_key,
+                    mime_type=None,
+                    text_preview=None,
+                    extraction=ScanExtractionRead(
+                        method="text",
+                        ocr_used=False,
+                        warnings=[],
+                        text_chars=0,
+                    ),
+                    entities=entities,
+                    regex_candidates=regex_candidates,
+                    keyword_candidates=keyword_candidates,
+                )
+            )
+
+    for item in items:
+        item_findings = findings_by_path.get(item.virtual_path, [])
+        entities = [
+            ScanEntityRead(
+                entity_type=f.entity_type,
+                start=f.start or 0,
+                end=f.end or 0,
+                text=f.entity_text,
+                score=f.score,
+            )
+            for f in item_findings
+        ]
+        regex_candidates = [
+            RegexCandidateRead(
+                id=f.id,
+                label=f.entity_type,
+                start=f.start or 0,
+                end=f.end or 0,
+                text=f.entity_text,
+                entity_type=f.entity_type,
+                score=f.score,
+                regex=f.primary_regex,
+            )
+            for f in item_findings
+            if f.primary_regex
+        ]
+        keyword_counts: Dict[str, dict] = {}
+        for f in item_findings:
+            for keyword in f.supporting_keywords or []:
+                entry = keyword_counts.setdefault(
+                    keyword, {"count": 0, "entity_types": set()}
+                )
+                entry["count"] += 1
+                entry["entity_types"].add(f.entity_type)
+        keyword_candidates = [
+            KeywordCandidateRead(
+                keyword=keyword,
+                count=data["count"],
+                entity_types=sorted(data["entity_types"]),
+            )
+            for keyword, data in keyword_counts.items()
+        ]
+        files.append(
+            ScanFileRead(
+                file_id=item.id,
+                virtual_path=item.virtual_path,
+                mime_type=item.mime_type,
+                text_preview=item.text_preview,
+                extraction=ScanExtractionRead(
+                    method=item.extraction_method or "text",
+                    ocr_used=bool(item.ocr_used),
+                    warnings=item.warnings or [],
+                    text_chars=item.text_chars or 0,
+                ),
+                entities=entities,
+                regex_candidates=regex_candidates,
+                keyword_candidates=keyword_candidates,
+            )
+        )
+
+    return ScanRead(
+        scan_id=job_id,
+        status=job.status,
+        error=job.error,
+        files=files,
+    )
+
+
+@app.get("/presidio/entities")
+def list_presidio_entities():
+    engines = PIIEngines()
+    entities = engines.text_engine.get_supported_entities(language="en")
+    return sorted(entities)
 
 
 @app.get("/jobs/{job_id}", response_model=JobRead)
@@ -178,6 +465,11 @@ def create_sit(sit: SitCreate, session=Depends(get_session)):
         supporting_groups=[group.model_dump() for group in sit.version.supporting_groups],
     )
     return repo.get_sit(sit_record.id)
+
+
+@app.post("/sits/from-scan", response_model=SitDetailRead)
+def create_sit_from_scan(sit: SitCreate, session=Depends(get_session)):
+    return create_sit(sit, session)
 
 
 @app.post("/sits/{sit_id}/versions", response_model=SitVersionRead)
@@ -298,6 +590,12 @@ def _validate_supporting_logic(payload: SitVersionCreate) -> None:
         raise HTTPException(status_code=400, detail="Invalid supporting logic mode")
     if mode == "MIN_N" and (payload.supporting_logic.min_n or 0) < 1:
         raise HTTPException(status_code=400, detail="MIN_N requires min_n >= 1")
+    if (
+        mode == "MIN_N"
+        and payload.supporting_logic.max_n
+        and payload.supporting_logic.max_n < (payload.supporting_logic.min_n or 0)
+    ):
+        raise HTTPException(status_code=400, detail="max_n must be >= min_n")
     if mode in {"ANY", "ALL", "MIN_N"} and not payload.supporting_groups:
         raise HTTPException(
             status_code=400, detail="Supporting groups required for selected mode"

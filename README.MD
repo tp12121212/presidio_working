@@ -61,3 +61,93 @@ Open the UI for the guided workflow:
 - `http://localhost:8000/ui/sits`
 - `http://localhost:8000/ui/rulepacks`
 
+## Presidio Studio Web UI (Demo + SIT Service)
+
+This repo now includes a modern React UI that mirrors the Hugging Face Presidio demo
+and adds drill-down pages for SIT Service.
+
+### Start backends (local demo)
+
+Presidio Analyzer + Anonymizer (ports 5002/5001):
+
+```bash
+docker compose -f docker-compose.yml up --build
+```
+
+SIT Service (port 8000):
+
+```bash
+docker compose -f docker-compose.sit-service.yml up --build
+```
+
+### Start the web UI
+
+```bash
+cd web-ui
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173`.
+
+### Optional environment overrides
+
+If you run services on different ports/hosts, set:
+
+```bash
+export VITE_ANALYZER_URL=http://localhost:5002
+export VITE_ANONYMIZER_URL=http://localhost:5001
+export VITE_SIT_API_URL=http://localhost:8000
+```
+
+The dev server proxies `/api/analyzer`, `/api/anonymizer`, and `/api/sit` to these
+targets to avoid CORS.
+
+## File/Directory Scan Workflow
+
+The UI now supports file, directory, archive, and email scans with OCR:
+
+1. Open `http://localhost:5173`
+2. Go to **Scan Files**
+3. Upload a file, directory, archive, or email
+4. View results in **Scan Results**
+5. Build a SIT via **SIT Builder**
+6. Export from **Rule Pack Export**
+
+### Dependencies
+
+OCR + PDFs:
+- Tesseract (OCR)
+- Poppler (PDF rendering)
+
+Archive support:
+- 7zip for `.7z` archives
+- unrar/bsdtar for `.rar` archives
+
+Email parsing:
+- `extract-msg` (for `.msg`)
+- `beautifulsoup4` (HTML body to text)
+
+On macOS (example):
+
+```bash
+brew install tesseract poppler p7zip unrar
+```
+
+### Supported types
+
+- Office: docx/xlsx/pptx
+- PDFs (text + image-based with OCR)
+- Images: jpeg/jpg/png/gif/tiff/bmp
+- Archives: zip/7z/rar/tar/tgz (nested)
+- Emails: .eml / .msg (body + attachments + inline images)
+
+### Guardrails
+
+- Max archive depth: `PRESIDIO_SIT_MAX_ARCHIVE_DEPTH`
+- Max archive files: `PRESIDIO_SIT_MAX_ARCHIVE_FILES`
+- Max archive bytes: `PRESIDIO_SIT_MAX_ARCHIVE_BYTES`
+- Max email attachments: `PRESIDIO_SIT_MAX_EMAIL_ATTACHMENTS`
+- Max email bytes: `PRESIDIO_SIT_MAX_EMAIL_BYTES`
+
+If you change these, restart the SIT service.

@@ -101,6 +101,8 @@ def supporting_attributes(logic: SITSupportingLogic) -> dict:
     attributes = {"mode": logic.mode}
     if logic.mode == "MIN_N":
         attributes["minN"] = str(logic.min_n or 1)
+        if logic.max_n:
+            attributes["maxN"] = str(logic.max_n)
     return attributes
 
 
@@ -149,6 +151,10 @@ def _validate_supporting(version: SITVersion) -> None:
         if not logic.min_n or logic.min_n < 1:
             raise ExportValidationError(
                 f"MIN_N requires min_n >= 1 for {version.id}."
+            )
+        if logic.max_n and logic.max_n < logic.min_n:
+            raise ExportValidationError(
+                f"MIN_N max_n must be >= min_n for {version.id}."
             )
 
     for group in groups:

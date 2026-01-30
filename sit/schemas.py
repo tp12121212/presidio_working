@@ -49,6 +49,7 @@ class SupportingGroupCreate(BaseModel):
 class SupportingLogicCreate(BaseModel):
     mode: str
     min_n: Optional[int] = None
+    max_n: Optional[int] = None
 
 
 class SitVersionCreate(BaseModel):
@@ -104,6 +105,7 @@ class SupportingGroupRead(BaseModel):
 class SupportingLogicRead(BaseModel):
     mode: str
     min_n: Optional[int] = None
+    max_n: Optional[int] = None
 
     class Config:
         from_attributes = True

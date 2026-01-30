@@ -11,6 +11,16 @@ def safe_filename(filename: str) -> str:
     return "".join(char for char in filename if char.isalnum() or char in "._-")
 
 
+def safe_relative_path(path: str) -> Path:
+    """Normalize a relative path and prevent traversal."""
+
+    normalized = Path(path)
+    if normalized.is_absolute() or ".." in normalized.parts:
+        raise ValueError("Relative path contains invalid segments")
+    safe_parts = [safe_filename(part) for part in normalized.parts if part]
+    return Path(*safe_parts)
+
+
 def ensure_within_base(path: Path, base: Path) -> Path:
     """Ensure the resolved path is within a base directory."""
 

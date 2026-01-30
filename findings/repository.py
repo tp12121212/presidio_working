@@ -26,6 +26,7 @@ class FindingsRepository:
                 job_id=job_id,
                 file_path=file_path,
                 entity_type=finding.entity_type,
+                entity_text=finding.entity_text,
                 score=finding.score,
                 start=finding.start,
                 end=finding.end,

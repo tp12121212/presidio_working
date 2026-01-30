@@ -34,10 +34,12 @@ class JobRepository:
         processed_files: int,
         entities_found: int,
         findings_created: int,
+        total_files: int | None = None,
     ) -> None:
         job = self.session.get(Job, job_id)
         if not job:
             return
+        job.total_files = total_files if total_files is not None else processed_files
         job.processed_files = processed_files
         job.entities_found = entities_found
         job.findings_created = findings_created

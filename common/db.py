@@ -17,6 +17,7 @@ def init_db() -> None:
 
     from jobs.models import Job, ProcessedFile  # noqa: F401
     from findings.models import ScanFinding  # noqa: F401
+    from scans.models import ScanItem  # noqa: F401
     from purview.models import Rulepack, RulepackSelection  # noqa: F401
     from sit.models import (  # noqa: F401
         KeywordList,

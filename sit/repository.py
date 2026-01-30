@@ -80,6 +80,7 @@ class SitRepository:
             id=str(uuid.uuid4()),
             mode=supporting_logic["mode"],
             min_n=supporting_logic.get("min_n"),
+            max_n=supporting_logic.get("max_n"),
         )
 
         for index, group in enumerate(supporting_groups):

@@ -15,12 +15,28 @@ class PIIEngines:
         self.image_engine = ImageAnalyzerEngine(analyzer_engine=self.text_engine)
 
     def analyze_text(
-        self, text: str, entities: List[str] | None = None, language: str = "en"
+        self,
+        text: str,
+        entities: List[str] | None = None,
+        language: str = "en",
+        score_threshold: float | None = None,
     ) -> List[RecognizerResult]:
-        return self.text_engine.analyze(text=text, language=language, entities=entities)
+        return self.text_engine.analyze(
+            text=text,
+            language=language,
+            entities=entities,
+            score_threshold=score_threshold,
+        )
 
-    def analyze_image(self, path: Path) -> Tuple[str, List[RecognizerResult]]:
+    def analyze_image(
+        self,
+        path: Path,
+        language: str = "en",
+        score_threshold: float | None = None,
+    ) -> Tuple[str, List[RecognizerResult]]:
         ocr_result = self.image_engine.ocr.perform_ocr(str(path))
         text = self.image_engine.ocr.get_text_from_ocr_dict(ocr_result)
-        results = self.text_engine.analyze(text=text, language="en")
+        results = self.text_engine.analyze(
+            text=text, language=language, score_threshold=score_threshold
+        )
         return text, results

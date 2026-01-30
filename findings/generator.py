@@ -13,6 +13,7 @@ STOPWORDS = {"the", "and", "for", "with", "this", "that", "from"}
 @dataclass
 class FindingCandidate:
     entity_type: str
+    entity_text: str
     score: float
     start: int
     end: int
@@ -54,6 +55,7 @@ def build_candidate(
 
     return FindingCandidate(
         entity_type=entity.entity_type,
+        entity_text=entity_text,
         score=entity.score,
         start=entity.start,
         end=entity.end,

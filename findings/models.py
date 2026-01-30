@@ -14,6 +14,7 @@ class ScanFinding(Base):
     job_id = Column(String, nullable=False)
     file_path = Column(Text)
     entity_type = Column(String, nullable=False)
+    entity_text = Column(Text)
     score = Column(Float)
     start = Column(Integer)
     end = Column(Integer)

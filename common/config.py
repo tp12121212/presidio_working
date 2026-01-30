@@ -20,7 +20,10 @@ class Settings(BaseSettings):
     scan_root: Path = Path("/data/uploads")
     max_archive_depth: int = 3
     max_archive_files: int = 1000
+    max_archive_bytes: int = 500 * 1024 * 1024
     max_file_size_mb: int = 250
+    max_email_attachments: int = 200
+    max_email_bytes: int = 200 * 1024 * 1024
     ocr_max_pages: int = 20
     ocr_concurrency: int = 2
     log_level: str = "INFO"

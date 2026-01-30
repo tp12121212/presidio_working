@@ -88,6 +88,7 @@ class SITSupportingLogic(Base):
         Enum("ANY", "ALL", "MIN_N", name="supporting_logic_mode"), nullable=False
     )
     min_n = Column(Integer)
+    max_n = Column(Integer)
 
     sit_version = relationship("SITVersion", back_populates="supporting_logic")
 
