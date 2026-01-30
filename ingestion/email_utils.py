@@ -40,6 +40,8 @@ def extract_eml(
     destination: Path,
     include_headers: bool = True,
     parse_html: bool = True,
+    include_attachments: bool = True,
+    include_inline_images: bool = True,
 ) -> Tuple[List[EmailExtractedItem], list[str]]:
     warnings: list[str] = []
     extracted: list[EmailExtractedItem] = []
@@ -90,59 +92,67 @@ def extract_eml(
             )
         )
 
-    attachment_count = 0
-    for part in message.iter_attachments():
-        attachment_count += 1
-        if attachment_count > settings.max_email_attachments:
-            warnings.append("Email contains too many attachments; extra attachments skipped.")
-            break
-        filename = part.get_filename() or "attachment"
-        safe_name = safe_filename(filename)
-        payload = part.get_payload(decode=True)
-        if payload is None:
-            continue
-        total_bytes += len(payload)
-        if total_bytes > settings.max_email_bytes:
-            warnings.append("Email attachments exceed size limit; extra attachments skipped.")
-            break
-        attachment_dir = destination / "attachments"
-        attachment_dir.mkdir(parents=True, exist_ok=True)
-        attachment_path = attachment_dir / safe_name
-        attachment_path.write_bytes(payload)
-        extracted.append(
-            EmailExtractedItem(
-                path=attachment_path,
-                virtual_path=f"attachments/{safe_name}",
-                warnings=[],
-            )
-        )
-
-    for part in message.walk():
-        if part.get_content_maintype() == "image":
-            disposition = part.get_content_disposition()
-            content_id = part.get("Content-ID")
-            if disposition != "inline" and not content_id:
-                continue
-            filename = part.get_filename() or f"inline_{content_id or 'image'}"
+    if include_attachments:
+        attachment_count = 0
+        for part in message.iter_attachments():
+            attachment_count += 1
+            if attachment_count > settings.max_email_attachments:
+                warnings.append(
+                    "Email contains too many attachments; extra attachments skipped."
+                )
+                break
+            filename = part.get_filename() or "attachment"
             safe_name = safe_filename(filename)
             payload = part.get_payload(decode=True)
             if payload is None:
                 continue
             total_bytes += len(payload)
             if total_bytes > settings.max_email_bytes:
-                warnings.append("Email inline images exceed size limit; extra images skipped.")
+                warnings.append(
+                    "Email attachments exceed size limit; extra attachments skipped."
+                )
                 break
-            inline_dir = destination / "inline"
-            inline_dir.mkdir(parents=True, exist_ok=True)
-            inline_path = inline_dir / safe_name
-            inline_path.write_bytes(payload)
+            attachment_dir = destination / "attachments"
+            attachment_dir.mkdir(parents=True, exist_ok=True)
+            attachment_path = attachment_dir / safe_name
+            attachment_path.write_bytes(payload)
             extracted.append(
                 EmailExtractedItem(
-                    path=inline_path,
-                    virtual_path=f"inline/{safe_name}",
+                    path=attachment_path,
+                    virtual_path=f"attachments/{safe_name}",
                     warnings=[],
                 )
             )
+
+    if include_inline_images:
+        for part in message.walk():
+            if part.get_content_maintype() == "image":
+                disposition = part.get_content_disposition()
+                content_id = part.get("Content-ID")
+                if disposition != "inline" and not content_id:
+                    continue
+                filename = part.get_filename() or f"inline_{content_id or 'image'}"
+                safe_name = safe_filename(filename)
+                payload = part.get_payload(decode=True)
+                if payload is None:
+                    continue
+                total_bytes += len(payload)
+                if total_bytes > settings.max_email_bytes:
+                    warnings.append(
+                        "Email inline images exceed size limit; extra images skipped."
+                    )
+                    break
+                inline_dir = destination / "inline"
+                inline_dir.mkdir(parents=True, exist_ok=True)
+                inline_path = inline_dir / safe_name
+                inline_path.write_bytes(payload)
+                extracted.append(
+                    EmailExtractedItem(
+                        path=inline_path,
+                        virtual_path=f"inline/{safe_name}",
+                        warnings=[],
+                    )
+                )
 
     return extracted, warnings
 
@@ -152,6 +162,8 @@ def extract_msg(
     destination: Path,
     include_headers: bool = True,
     parse_html: bool = True,
+    include_attachments: bool = True,
+    include_inline_images: bool = True,
 ) -> Tuple[List[EmailExtractedItem], list[str]]:
     try:
         import extract_msg  # type: ignore
@@ -208,31 +220,38 @@ def extract_msg(
             )
         )
 
-    attachment_dir = destination / "attachments"
-    attachment_dir.mkdir(parents=True, exist_ok=True)
-    attachment_count = 0
-    for attachment in msg.attachments:
-        attachment_count += 1
-        if attachment_count > settings.max_email_attachments:
-            warnings.append("Email contains too many attachments; extra attachments skipped.")
-            break
-        safe_name = safe_filename(attachment.longFilename or attachment.shortFilename or "attachment")
-        payload = attachment.data
-        if payload is None:
-            continue
-        total_bytes += len(payload)
-        if total_bytes > settings.max_email_bytes:
-            warnings.append("Email attachments exceed size limit; extra attachments skipped.")
-            break
-        attachment_path = attachment_dir / safe_name
-        attachment_path.write_bytes(payload)
-        extracted.append(
-            EmailExtractedItem(
-                path=attachment_path,
-                virtual_path=f"attachments/{safe_name}",
-                warnings=[],
+    if include_attachments:
+        attachment_dir = destination / "attachments"
+        attachment_dir.mkdir(parents=True, exist_ok=True)
+        attachment_count = 0
+        for attachment in msg.attachments:
+            attachment_count += 1
+            if attachment_count > settings.max_email_attachments:
+                warnings.append(
+                    "Email contains too many attachments; extra attachments skipped."
+                )
+                break
+            safe_name = safe_filename(
+                attachment.longFilename or attachment.shortFilename or "attachment"
             )
-        )
+            payload = attachment.data
+            if payload is None:
+                continue
+            total_bytes += len(payload)
+            if total_bytes > settings.max_email_bytes:
+                warnings.append(
+                    "Email attachments exceed size limit; extra attachments skipped."
+                )
+                break
+            attachment_path = attachment_dir / safe_name
+            attachment_path.write_bytes(payload)
+            extracted.append(
+                EmailExtractedItem(
+                    path=attachment_path,
+                    virtual_path=f"attachments/{safe_name}",
+                    warnings=[],
+                )
+            )
 
     msg.close()
     return extracted, warnings

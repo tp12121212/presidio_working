@@ -21,6 +21,7 @@ COPY pii /app/pii
 COPY sit /app/sit
 COPY purview /app/purview
 COPY findings /app/findings
+COPY scans /app/scans
 COPY workers /app/workers
 COPY jobs /app/jobs
 

@@ -42,6 +42,8 @@ class ScanOptions:
     ocr_mode: str = "auto"  # auto | force | off
     include_headers: bool = True
     parse_html: bool = True
+    include_attachments: bool = True
+    include_inline_images: bool = True
 
 
 class FileProcessor:
@@ -292,6 +294,8 @@ class FileProcessor:
                     extract_dir,
                     include_headers=self.options.include_headers,
                     parse_html=self.options.parse_html,
+                    include_attachments=self.options.include_attachments,
+                    include_inline_images=self.options.include_inline_images,
                 )
             else:
                 items, warnings = extract_msg(
@@ -299,6 +303,8 @@ class FileProcessor:
                     extract_dir,
                     include_headers=self.options.include_headers,
                     parse_html=self.options.parse_html,
+                    include_attachments=self.options.include_attachments,
+                    include_inline_images=self.options.include_inline_images,
                 )
         except Exception as exc:  # noqa: BLE001
             warnings.append(str(exc))
