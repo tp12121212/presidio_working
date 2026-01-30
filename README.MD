@@ -41,6 +41,65 @@ export VITE_SIT_API_URL=http://localhost:8000
 ```
 The dev server proxies `/api/analyzer`, `/api/anonymizer`, `/api/sit`, `/api/scan`, and `/api/presidio` to avoid CORS.
 
+## Configuration (.env)
+
+### Where to place .env files
+- **Repo root**: SIT Service reads `.env` via `pydantic-settings` (`common/config.py`). This is the recommended location for SIT Service config.
+- **web-ui/**: Vite reads `.env` files in `web-ui/` (e.g. `web-ui/.env`) for UI proxy targets.
+- **Analyzer/Anonymizer/Image Redactor**: these read environment variables directly (no `.env` loader). Use `docker-compose.yml`, shell exports, or your deployment env.
+
+### Example .env templates
+- Root template: `.env.example` (SIT Service + optional integrations)
+- UI template: `web-ui/.env.example`
+
+Copy them and fill in your values (do **not** commit secrets):
+```bash
+cp .env.example .env
+cp web-ui/.env.example web-ui/.env
+```
+
+### Required/optional variables
+
+Service | Variables | Required | Notes
+---|---|---|---
+SIT Service | `PRESIDIO_SIT_*` | Optional | Defaults in `common/config.py`; set for custom DB, storage, and guardrails.
+UI (Vite) | `VITE_ANALYZER_URL`, `VITE_ANONYMIZER_URL`, `VITE_SIT_API_URL` | Optional | Only needed if not using default localhost ports.
+Analyzer | `PORT`, `LOG_LEVEL`, `ANALYZER_CONF_FILE`, `NLP_CONF_FILE`, `RECOGNIZER_REGISTRY_CONF_FILE` | Optional | Used by `presidio-analyzer/app.py`.
+Anonymizer | `PORT`, `LOG_LEVEL` | Optional | Used by `presidio-anonymizer/app.py`.
+Image Redactor | `PORT` | Optional | Used by `presidio-image-redactor/app.py`.
+
+### Integration variables present in code (optional)
+
+These integrations are **optional** and only used if you enable the corresponding recognizers/operators:
+
+Variable | Used by | Purpose
+---|---|---
+`AZURE_AI_KEY`, `AZURE_AI_ENDPOINT` | Analyzer (`azure_ai_language.py`) | Azure AI Language recognizer
+`AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_API_VERSION` | Analyzer (`azure_openai_provider.py`, `azure_openai_langextract_recognizer.py`) | Azure OpenAI recognizers
+`DOCUMENT_INTELLIGENCE_ENDPOINT`, `DOCUMENT_INTELLIGENCE_KEY` | Image Redactor (`document_intelligence_ocr.py`) | Azure Document Intelligence OCR
+`AHDS_ENDPOINT` | Analyzer/Anonymizer (`ahds_recognizer.py`, `ahds_surrogate.py`) | AHDS surrogate endpoints
+`ENV` | Analyzer (`azure_auth_helper.py`) | Controls Azure credential chain; use `development` for local
+
+### Streamlit demo variables (docs/samples/python/streamlit)
+
+These variables are **used by the Streamlit demo only** (not wired into the main web UI). The exact block below is copy/paste ready:
+```bash
+TA_KEY=YOUR_TEXT_ANALYTICS_KEY
+TA_ENDPOINT=YOUR_TEXT_ANALYTICS_ENDPOINT
+OPENAI_TYPE="Azure" #or "openai"
+OPENAI_KEY=YOUR_OPENAI_KEY
+OPENAI_API_VERSION="2023-05-15"
+AZURE_OPENAI_ENDPOINT=YOUR_AZURE_OPENAI_AZURE_OPENAI_ENDPOINT
+AZURE_OPENAI_DEPLOYMENT=text-davinci-003
+ALLOW_OTHER_MODELS=true #true if the user could download new models
+```
+
+Notes:
+- `OPENAI_TYPE="Azure"` uses Azure OpenAI endpoint + deployment.
+- `OPENAI_TYPE="openai"` uses the OpenAI public API (the Streamlit demo expects `OPENAI_KEY`).
+- `ALLOW_OTHER_MODELS` controls whether the Streamlit UI allows downloading additional models.
+- These variables are referenced in `docs/samples/python/streamlit/*` and are **not** used by the main UI or SIT Service.
+
 ## Local dev (venv + SQLite)
 ```bash
 python -m venv .venv
