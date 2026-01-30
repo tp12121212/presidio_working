@@ -102,8 +102,8 @@ Notes:
 
 ## Local dev (venv + SQLite)
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+python -m venv venv
+source venv/bin/activate
 pip install -r requirements-sit-service.txt
 
 export PRESIDIO_SIT_DATABASE_URL=sqlite:///./presidio_sit.db

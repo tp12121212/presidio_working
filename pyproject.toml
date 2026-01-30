@@ -18,7 +18,7 @@ exclude = [
     ".ruff_cache",
     ".svn",
     ".tox",
-    ".venv",
+    "venv",
     ".vscode",
     "__pypackages__",
     "_build",
