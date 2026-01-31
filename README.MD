@@ -4,7 +4,7 @@
 This repo provides:
 - Presidio Analyzer/Anonymizer/Image Redactor APIs
 - A SIT Service (FastAPI + Celery) that scans files for PII, stores findings, curates SITs, and exports Purview rulepacks
-- A modern web UI (React) that mirrors the Hugging Face Presidio demo and adds full scan -> results -> SIT build -> export workflows
+- A modern web UI (React) that mirrors the Hugging Face Purview SIT Generator and adds full scan -> results -> SIT build -> export workflows
 
 ## Quick start (Docker)
 
@@ -121,7 +121,7 @@ celery -A workers.celery_app worker --loglevel=info --concurrency=2
 
 ## Web UI
 
-### Presidio Demo (text analyze + redact)
+### Purview SIT Generator (text analyze + redact)
 - Preserves the Hugging Face demo flow
 - Analyze text, review entities, redact output
 
@@ -133,7 +133,7 @@ celery -A workers.celery_app worker --loglevel=info --concurrency=2
 5) Export rulepacks
 
 Navigation:
-- Presidio Demo
+- Purview SIT Generator
 - Scan Files
 - Scan Results
 - SIT Builder

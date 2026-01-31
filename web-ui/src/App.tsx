@@ -13,7 +13,7 @@ export default function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-title">Presidio Studio</div>
+          <div className="brand-title">Purview SIT Generator</div>
           <div className="brand-sub">Analyze, redact, and curate SITs</div>
         </div>
         <nav className="nav-section">
@@ -24,7 +24,7 @@ export default function App() {
               `nav-item${isActive ? " active" : ""}`
             }
           >
-            Presidio Demo
+            Purview SIT Generator
           </NavLink>
           <div className="nav-item">Scan Files ▾</div>
           <div className="nav-sub">

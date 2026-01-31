@@ -15,7 +15,7 @@ bitcoin wallets, US phone numbers, financial data and more.
 
 ## How it works
 
-![Presidio demo gif](assets/detection_flow.gif)
+![Purview SIT Generator gif](assets/detection_flow.gif)
 
 ## Main features
 

@@ -154,7 +154,7 @@ export default function PresidioDemo() {
     <div className="page">
       <div className="header">
         <div>
-          <h1>Presidio Demo</h1>
+          <h1>Purview SIT Generator</h1>
           <p>Detect and redact sensitive data with real-time entity insights.</p>
         </div>
       </div>

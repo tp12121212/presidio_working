@@ -1,7 +1,7 @@
 # Deploy presidio services to an Azure App Service
 
 Presidio containers can be hosted on an [Azure App Service](https://docs.microsoft.com/en-us/azure/app-service/).
-Azure App Service provides a managed production environment, which supports docker containers and devops optimizations. It is a global scale service with built in security and compliance features that fits multiple cloud workloads. The presidio team uses Azure App Service for both its development environment and the presidio demo website.
+Azure App Service provides a managed production environment, which supports docker containers and devops optimizations. It is a global scale service with built in security and compliance features that fits multiple cloud workloads. The presidio team uses Azure App Service for both its development environment and the Purview SIT Generator website.
 
 ## Deploy Presidio services to Azure
 
