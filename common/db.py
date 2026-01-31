@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from common.config import settings
@@ -31,3 +31,16 @@ def init_db() -> None:
     )
 
     Base.metadata.create_all(bind=engine)
+    _ensure_scan_findings_schema()
+
+
+def _ensure_scan_findings_schema() -> None:
+    """Backfill missing columns for existing scan_findings tables."""
+    inspector = inspect(engine)
+    if "scan_findings" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("scan_findings")}
+    if "entity_text" not in columns:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE scan_findings ADD COLUMN entity_text TEXT"))

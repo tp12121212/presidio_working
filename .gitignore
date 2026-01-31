@@ -71,3 +71,6 @@ web-ui/.vite/
 
 # Logs
 *.log
+
+# Data
+data/
